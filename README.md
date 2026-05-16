@@ -1,4 +1,4 @@
-# 💰 Budget Manager
+# 💰 Budget Manager v2
 
 Application web **100% locale** de gestion de budget personnel. Aucune connexion internet, aucun serveur, aucune dépendance externe. Toutes les données sont stockées dans le `localStorage` de votre navigateur.
 
