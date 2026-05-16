@@ -111,6 +111,59 @@ Liste des périodes archivées.
 | 🎯 Budget idéal | Configuration des catégories et plafonds |
 | ⚙️ Paramètres | Revenus et charges fixes |
 | 🗄️ Archives | Clôture mensuelle, historique, export JSON |
+| 📈 Statistiques | Analyse 50/30/20, historique, conseils personnalisés |
+
+## 📊 Module Statistiques & Règle 50/30/20
+
+Nouvelle vue dédiée à l'analyse budgétaire avancée selon la méthode popularisée par Elizabeth Warren.
+
+### Fonctionnalités
+
+- **Mode d'emploi interactif** : Accordéon explicatif avec tableau récapitulatif des 3 catégories (Besoins/Envies/Épargne)
+- **Calcul personnalisé** : 
+  - 3 jauges de progression CSS pur comparant réel vs recommandé
+  - Affichage des écarts en euros
+  - Indicateurs d'objectifs atteints ✅/❌
+- **Historique mensuel** :
+  - Tableau comparatif multi-périodes
+  - Graphique à barres empilées (CSS pur) avec lignes de seuil
+  - Filtres : 3 mois / 6 mois / Tout l'historique
+- **Conseils intelligents** :
+  - Cartes colorées contextuelles (alerte, attention, succès)
+  - Détection automatique des dépassements
+  - Comparaison avec le mois précédent (tendances ▲/▼)
+
+### Architecture des données requise
+
+Pour un fonctionnement optimal, chaque catégorie du `budget_ideal` doit inclure un champ `type` :
+
+```json
+{
+  "budget_ideal": [
+    { "name": "Loyer", "limit": 850, "type": "besoin" },
+    { "name": "Restaurant", "limit": 150, "type": "envie" },
+    { "name": "Livret A", "limit": 400, "type": "epargne" }
+  ]
+}
+```
+
+**Types disponibles** : `besoin` | `envie` | `epargne`
+
+> ℹ️ Si le champ `type` est absent, le système l'ajoute silencieusement avec la valeur par défaut `"besoin"`.
+
+### Fonctions JavaScript ajoutées
+
+| Fonction | Rôle |
+|----------|------|
+| `renderStats()` | Rafraîchit toute la vue statistiques |
+| `computeRepartition(periode)` | Calcule Besoins/Envies/Épargne en € et % |
+| `getTypeCategorie(nom)` | Retourne le type d'une catégorie |
+| `renderJauges(data)` | Génère les jauges de progression |
+| `renderHistorique()` | Construit le tableau et graphique d'historique |
+| `renderGraphiqueBarres(historique)` | Dessine les barres empilées proportionnelles |
+| `renderConseils(data)` | Affiche les cartes conseils contextuels |
+| `toggleAccordion()` | Gère l'ouverture/fermeture du mode d'emploi |
+| `scrollToSection()` | Scroll fluide vers le calculateur |
 
 ## 🔐 Confidentialité & Sécurité
 
