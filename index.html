@@ -270,6 +270,7 @@
             <a class="nav-link active" data-view="dashboard"><i>📊</i> Tableau de bord</a>
             <a class="nav-link" data-view="expenses"><i>💸</i> Dépenses</a>
             <a class="nav-link" data-view="budget"><i>🎯</i> Budget idéal</a>
+            <a class="nav-link" data-view="stats"><i>📈</i> Statistiques</a>
             <a class="nav-link" data-view="settings"><i>⚙️</i> Paramètres</a>
             <a class="nav-link" data-view="archive"><i>📦</i> Archives</a>
         </nav>
@@ -627,6 +628,164 @@
             </div>
         </section>
 
+        <!-- STATS VIEW (PROMPT 8 - Règle 50/30/20) -->
+        <section id="vue-stats">
+            <h1 style="margin-bottom: 1.5rem;">Statistiques & Règle 50/30/20</h1>
+            
+            <!-- SECTION 1: MODE D'EMPLOI -->
+            <div class="card">
+                <div class="card-title" onclick="toggleAccordion('regle-info')" style="cursor:pointer;">
+                    <span>📚 Comprendre la règle 50/30/20</span>
+                    <span id="accordion-icon-regle-info">▼</span>
+                </div>
+                <div id="regle-info" style="display:block;">
+                    <p style="margin-bottom:1rem;">La règle <strong>50/30/20</strong>, popularisée par Elizabeth Warren, est une méthode simple pour organiser son budget :</p>
+                    <ul style="margin-left:1.5rem; margin-bottom:1rem;">
+                        <li><strong>50%</strong> du revenu NET pour les <strong>BESOINS</strong> (loyer, courses, factures, transport)</li>
+                        <li><strong>30%</strong> pour les <strong>ENVIES</strong> (restaurants, loisirs, shopping, abonnements non essentiels)</li>
+                        <li><strong>20%</strong> pour l'<strong>ÉPARGNE</strong> et le remboursement de dettes</li>
+                    </ul>
+                    
+                    <table style="margin-bottom:1rem;">
+                        <thead>
+                            <tr>
+                                <th>Catégorie</th>
+                                <th>Pourcentage</th>
+                                <th>Exemples concrets</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><strong>Besoins</strong></td>
+                                <td>50%</td>
+                                <td>Loyer/crédit, électricité, eau, courses alimentaires, assurance, transports, téléphone</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Envies</strong></td>
+                                <td>30%</td>
+                                <td>Restaurants, cinéma, streaming, shopping, hobbies, vacances, abonnements non essentiels</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Épargne</strong></td>
+                                <td>20%</td>
+                                <td>Livret A, PEL, assurance-vie, remboursement anticipé de crédits, fonds d'urgence</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    
+                    <button class="btn" onclick="scrollToSection('calcul-perso')">Comprendre ma situation</button>
+                </div>
+            </div>
+
+            <!-- SECTION 2: CALCUL PERSONNALISÉ -->
+            <div class="card" id="calcul-perso">
+                <h2 class="card-title">Votre répartition 50/30/20 ce mois-ci</h2>
+                
+                <div id="stats-revenus-info" style="margin-bottom:1rem; padding:1rem; background:#f0fdf4; border-radius:0.5rem; border:1px solid #bbf7d0;">
+                    <strong>Revenus nets :</strong> <span id="stats-revenus-montant">--</span> | 
+                    <strong>Charges fixes :</strong> <span id="stats-charges-montant">--</span> | 
+                    <strong>Reste à dépenser :</strong> <span id="stats-reste-montant">--</span>
+                </div>
+
+                <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(250px, 1fr)); gap:1.5rem; margin-bottom:1.5rem;">
+                    <!-- Jauge BESOINS -->
+                    <div class="category-card" style="border-top:4px solid #4f46e5;">
+                        <div class="category-header">
+                            <span class="category-name">BESOINS (50%)</span>
+                        </div>
+                        <div style="font-size:0.9rem; color:var(--text-secondary); margin-bottom:0.5rem;">
+                            Plafond : <strong id="besoins-plafond">--</strong> | Réel : <strong id="besoins-reel">--</strong>
+                        </div>
+                        <div class="progress-container">
+                            <div id="bar-besoins" class="progress-bar" style="width:0%; background-color:#4f46e5;"></div>
+                            <div id="txt-besoins" class="progress-text">0%</div>
+                        </div>
+                        <div id="ecart-besoins" style="margin-top:0.5rem; font-size:0.85rem; font-weight:600;"></div>
+                    </div>
+
+                    <!-- Jauge ENVIES -->
+                    <div class="category-card" style="border-top:4px solid #f59e0b;">
+                        <div class="category-header">
+                            <span class="category-name">ENVIES (30%)</span>
+                        </div>
+                        <div style="font-size:0.9rem; color:var(--text-secondary); margin-bottom:0.5rem;">
+                            Plafond : <strong id="envies-plafond">--</strong> | Réel : <strong id="envies-reel">--</strong>
+                        </div>
+                        <div class="progress-container">
+                            <div id="bar-envies" class="progress-bar" style="width:0%; background-color:#f59e0b;"></div>
+                            <div id="txt-envies" class="progress-text">0%</div>
+                        </div>
+                        <div id="ecart-envies" style="margin-top:0.5rem; font-size:0.85rem; font-weight:600;"></div>
+                    </div>
+
+                    <!-- Jauge ÉPARGNE -->
+                    <div class="category-card" style="border-top:4px solid #10b981;">
+                        <div class="category-header">
+                            <span class="category-name">ÉPARGNE (20%)</span>
+                        </div>
+                        <div style="font-size:0.9rem; color:var(--text-secondary); margin-bottom:0.5rem;">
+                            Objectif : <strong id="epargne-objectif">--</strong> | Réel : <strong id="epargne-reel">--</strong>
+                        </div>
+                        <div class="progress-container">
+                            <div id="bar-epargne" class="progress-bar" style="width:0%; background-color:#10b981;"></div>
+                            <div id="txt-epargne" class="progress-text">0%</div>
+                        </div>
+                        <div id="statut-epargne" style="margin-top:0.5rem; font-size:0.85rem; font-weight:600;"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SECTION 3: HISTORIQUE MENSUEL -->
+            <div class="card">
+                <div class="card-title">
+                    <span>Historique mensuel</span>
+                    <select id="stats-periode-select" style="width:auto; padding:0.4rem 0.8rem; font-size:0.9rem;">
+                        <option value="3">3 derniers mois</option>
+                        <option value="6">6 derniers mois</option>
+                        <option value="all">Tout l'historique</option>
+                    </select>
+                </div>
+                
+                <div id="stats-historique-table" style="overflow-x:auto;">
+                    <table id="table-historique">
+                        <thead>
+                            <tr>
+                                <th>Période</th>
+                                <th>Revenus</th>
+                                <th>Besoins %</th>
+                                <th>Envies %</th>
+                                <th>Épargne %</th>
+                                <th>Bilan</th>
+                            </tr>
+                        </thead>
+                        <tbody id="corps-historique">
+                            <tr><td colspan="6" style="text-align:center; color:var(--text-secondary);">Aucune donnée</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div style="margin-top:1.5rem;">
+                    <h3 style="margin-bottom:1rem; font-size:1rem;">Graphique comparatif</h3>
+                    <div id="graphique-barres" class="chart-container" style="height:250px; position:relative;">
+                        <p style="color:var(--text-secondary); align-self:center;">Aucune donnée suffisante pour le graphique.</p>
+                    </div>
+                    <div style="display:flex; gap:1rem; margin-top:0.5rem; flex-wrap:wrap; font-size:0.8rem;">
+                        <span style="display:flex; align-items:center;"><span style="display:inline-block; width:12px; height:12px; background:#4f46e5; margin-right:4px; border-radius:2px;"></span>Besoins</span>
+                        <span style="display:flex; align-items:center;"><span style="display:inline-block; width:12px; height:12px; background:#f59e0b; margin-right:4px; border-radius:2px;"></span>Envies</span>
+                        <span style="display:flex; align-items:center;"><span style="display:inline-block; width:12px; height:12px; background:#10b981; margin-right:4px; border-radius:2px;"></span>Épargne</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SECTION 4: CONSEILS D'OPTIMISATION -->
+            <div class="card">
+                <h2 class="card-title">Conseils personnalisés</h2>
+                <div id="conseils-container">
+                    <p style="color:var(--text-secondary); font-style:italic;">Analyse en cours...</p>
+                </div>
+            </div>
+        </section>
+
     </main>
 
     <!-- Mobile Navigation -->
@@ -634,6 +793,7 @@
         <div class="mobile-nav-item"><a class="mobile-nav-link active" data-view="dashboard"><i>📊</i><span>Accueil</span></a></div>
         <div class="mobile-nav-item"><a class="mobile-nav-link" data-view="expenses"><i>💸</i><span>Dépenses</span></a></div>
         <div class="mobile-nav-item"><a class="mobile-nav-link" data-view="budget"><i>🎯</i><span>Budget</span></a></div>
+        <div class="mobile-nav-item"><a class="mobile-nav-link" data-view="stats"><i>📈</i><span>Stats</span></a></div>
         <div class="mobile-nav-item"><a class="mobile-nav-link" data-view="settings"><i>⚙️</i><span>Param.</span></a></div>
         <div class="mobile-nav-item"><a class="mobile-nav-link" data-view="archive"><i>📦</i><span>Archives</span></a></div>
     </nav>
@@ -1294,6 +1454,8 @@
                     DashboardModule.render();
                 } else if (viewId === 'archive') {
                     ArchiveModule.init();
+                } else if (viewId === 'stats') {
+                    StatsModule.renderStats();
                 }
             }
 
@@ -1307,6 +1469,399 @@
             // Initialisation de la vue par défaut
             handleRoute('dashboard');
         });
+
+        // ====================================================================
+        // MODULE STATISTIQUES & RÈGLE 50/30/20
+        // ====================================================================
+        
+        // Fonctions utilitaires globales pour la vue stats
+        function toggleAccordion(id) {
+            const el = document.getElementById(id);
+            const icon = document.getElementById('accordion-icon-' + id);
+            if (el && icon) {
+                if (el.style.display === 'none') {
+                    el.style.display = 'block';
+                    icon.textContent = '▼';
+                } else {
+                    el.style.display = 'none';
+                    icon.textContent = '▶';
+                }
+            }
+        }
+        
+        function scrollToSection(id) {
+            const el = document.getElementById(id);
+            if (el) {
+                el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        }
+
+        const StatsModule = {
+            init() {
+                this.ensureCategoryTypes();
+                document.getElementById('stats-periode-select').addEventListener('change', () => {
+                    this.renderHistorique();
+                });
+            },
+
+            // Garantir que chaque catégorie a un champ "type"
+            ensureCategoryTypes() {
+                const settings = BudgetApp.getItem('bm_settings') || { budget_ideal: [] };
+                let modified = false;
+                if (settings.budget_ideal && Array.isArray(settings.budget_ideal)) {
+                    settings.budget_ideal.forEach(cat => {
+                        if (!cat.type) {
+                            cat.type = 'besoin';
+                            modified = true;
+                        }
+                    });
+                }
+                if (modified) {
+                    BudgetApp.setItem('bm_settings', settings);
+                }
+            },
+
+            // Obtenir le type d'une catégorie
+            getTypeCategorie(nomCategorie) {
+                const settings = BudgetApp.getItem('bm_settings') || { budget_ideal: [] };
+                if (!settings.budget_ideal) return 'besoin';
+                const cat = settings.budget_ideal.find(c => c.name === nomCategorie);
+                return cat ? (cat.type || 'besoin') : 'besoin';
+            },
+
+            // Calculer la répartition 50/30/20 pour une période
+            computeRepartition(periode) {
+                const revenus = BudgetApp.getTotalRevenus();
+                const chargesFixes = BudgetApp.getTotalCharges();
+                const depensesParCat = BudgetApp.getDepensesParCategorie(periode);
+                
+                let besoins = chargesFixes;
+                let envies = 0;
+                
+                Object.keys(depensesParCat).forEach(catName => {
+                    const type = this.getTypeCategorie(catName);
+                    if (type === 'besoin') {
+                        besoins += depensesParCat[catName];
+                    } else if (type === 'envie') {
+                        envies += depensesParCat[catName];
+                    }
+                    // epargne n'est pas une dépense mais le solde restant
+                });
+                
+                const totalDepenses = besoins + envies;
+                const epargne = revenus - totalDepenses;
+                
+                const plafondBesoins = revenus * 0.50;
+                const plafondEnvies = revenus * 0.30;
+                const objectifEpargne = revenus * 0.20;
+                
+                return {
+                    revenus,
+                    chargesFixes,
+                    besoins: { reel: besoins, plafond: plafondBesoins, pct: revenus > 0 ? (besoins / revenus) * 100 : 0 },
+                    envies: { reel: envies, plafond: plafondEnvies, pct: revenus > 0 ? (envies / revenus) * 100 : 0 },
+                    epargne: { reel: epargne, objectif: objectifEpargne, pct: revenus > 0 ? (epargne / revenus) * 100 : 0 },
+                    solde: epargne
+                };
+            },
+
+            // Afficher les jauges
+            renderJauges(repartition) {
+                const f = BudgetApp.formatEuro;
+                
+                // Infos générales
+                document.getElementById('stats-revenus-montant').textContent = f(repartition.revenus);
+                document.getElementById('stats-charges-montant').textContent = f(repartition.chargesFixes);
+                document.getElementById('stats-reste-montant').textContent = f(repartition.revenus - repartition.chargesFixes);
+                
+                // BESOINS
+                document.getElementById('besoins-plafond').textContent = f(repartition.besoins.plafond);
+                document.getElementById('besoins-reel').textContent = f(repartition.besoins.reel);
+                const barBesoins = document.getElementById('bar-besoins');
+                const txtBesoins = document.getElementById('txt-besoins');
+                const ecartBesoins = document.getElementById('ecart-besoins');
+                
+                barBesoins.style.width = Math.min(repartition.besoins.pct, 100) + '%';
+                txtBesoins.textContent = repartition.besoins.pct.toFixed(1) + '%';
+                
+                const ecartB = repartition.besoins.reel - repartition.besoins.plafond;
+                if (ecartB > 0) {
+                    ecartBesoins.textContent = '⚠️ Dépassement de ' + f(ecartB);
+                    ecartBesoins.style.color = 'var(--danger-color)';
+                } else if (ecartB < 0) {
+                    ecartBesoins.textContent = '✅ Sous le plafond de ' + f(Math.abs(ecartB));
+                    ecartBesoins.style.color = 'var(--success-color)';
+                } else {
+                    ecartBesoins.textContent = '✓ Exactement au plafond';
+                    ecartBesoins.style.color = 'var(--text-secondary)';
+                }
+                
+                // ENVIES
+                document.getElementById('envies-plafond').textContent = f(repartition.envies.plafond);
+                document.getElementById('envies-reel').textContent = f(repartition.envies.reel);
+                const barEnvies = document.getElementById('bar-envies');
+                const txtEnvies = document.getElementById('txt-envies');
+                const ecartEnvies = document.getElementById('ecart-envies');
+                
+                barEnvies.style.width = Math.min(repartition.envies.pct, 100) + '%';
+                txtEnvies.textContent = repartition.envies.pct.toFixed(1) + '%';
+                
+                const ecartE = repartition.envies.reel - repartition.envies.plafond;
+                if (ecartE > 0) {
+                    ecartEnvies.textContent = '⚠️ Dépassement de ' + f(ecartE);
+                    ecartEnvies.style.color = 'var(--danger-color)';
+                } else if (ecartE < 0) {
+                    ecartEnvies.textContent = '✅ Sous le plafond de ' + f(Math.abs(ecartE));
+                    ecartEnvies.style.color = 'var(--success-color)';
+                } else {
+                    ecartEnvies.textContent = '✓ Exactement au plafond';
+                    ecartEnvies.style.color = 'var(--text-secondary)';
+                }
+                
+                // ÉPARGNE
+                document.getElementById('epargne-objectif').textContent = f(repartition.epargne.objectif);
+                document.getElementById('epargne-reel').textContent = f(repartition.epargne.reel);
+                const barEpargne = document.getElementById('bar-epargne');
+                const txtEpargne = document.getElementById('txt-epargne');
+                const statutEpargne = document.getElementById('statut-epargne');
+                
+                barEpargne.style.width = Math.min(repartition.epargne.pct, 100) + '%';
+                txtEpargne.textContent = repartition.epargne.pct.toFixed(1) + '%';
+                
+                if (repartition.epargne.reel >= repartition.epargne.objectif) {
+                    statutEpargne.textContent = '✅ Objectif atteint !';
+                    statutEpargne.style.color = 'var(--success-color)';
+                } else {
+                    const manque = repartition.epargne.objectif - repartition.epargne.reel;
+                    statutEpargne.textContent = '❌ Manque ' + f(manque) + ' pour l\'objectif';
+                    statutEpargne.style.color = 'var(--warning-color)';
+                }
+            },
+
+            // Rendu de l'historique
+            renderHistorique() {
+                const periodeSelect = document.getElementById('stats-periode-select').value;
+                const archives = BudgetApp.getItem('bm_archives') || [];
+                const currentMonthKey = BudgetApp.getCurrentMonthKey();
+                const currentPeriod = currentMonthKey.replace('bm_mois_', '');
+                
+                // Construire la liste des périodes
+                let periodes = [];
+                
+                // Ajouter mois en cours
+                periodes.push({ periode: currentPeriod, isCurrent: true });
+                
+                // Ajouter archives triées par date décroissante
+                const archivesTrie = [...archives].sort((a, b) => {
+                    return new Date(b.periode) - new Date(a.periode);
+                });
+                
+                if (periodeSelect === '3') {
+                    periodes = periodes.concat(archivesTrie.slice(0, 2));
+                } else if (periodeSelect === '6') {
+                    periodes = periodes.concat(archivesTrie.slice(0, 5));
+                } else {
+                    periodes = periodes.concat(archivesTrie);
+                }
+                
+                // Calculer répartition pour chaque période
+                const historique = periodes.map(p => {
+                    const rep = this.computeRepartition(p.periode);
+                    return {
+                        periode: p.periode,
+                        revenus: rep.revenus,
+                        besoinsPct: rep.besoins.pct,
+                        enviesPct: rep.envies.pct,
+                        epargnePct: rep.epargne.pct,
+                        solde: rep.solde,
+                        besoins: rep.besoins.reel,
+                        envies: rep.envies.reel,
+                        epargne: rep.epargne.reel
+                    };
+                });
+                
+                // Remplir le tableau
+                const tbody = document.getElementById('corps-historique');
+                if (historique.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; color:var(--text-secondary);">Aucune donnée</td></tr>';
+                } else {
+                    const f = BudgetApp.formatEuro;
+                    tbody.innerHTML = historique.map(h => {
+                        const bilanClass = h.solde >= 0 ? 'text-success' : 'text-danger';
+                        const bilanText = h.solde >= 0 ? 'Positif' : 'Déficitaire';
+                        return `<tr>
+                            <td>${h.periode}</td>
+                            <td>${f(h.revenus)}</td>
+                            <td>${h.besoinsPct.toFixed(1)}%</td>
+                            <td>${h.enviesPct.toFixed(1)}%</td>
+                            <td>${h.epargnePct.toFixed(1)}%</td>
+                            <td class="${bilanClass}">${bilanText} (${f(h.solde)})</td>
+                        </tr>`;
+                    }).join('');
+                }
+                
+                // Rendu du graphique
+                this.renderGraphiqueBarres(historique);
+            },
+
+            // Graphique à barres empilées
+            renderGraphiqueBarres(historique) {
+                const container = document.getElementById('graphique-barres');
+                
+                if (historique.length === 0) {
+                    container.innerHTML = '<p style="color:var(--text-secondary); align-self:center;">Aucune donnée suffisante pour le graphique.</p>';
+                    return;
+                }
+                
+                // Trier par période croissante pour affichage
+                const dataTriee = [...historique].sort((a, b) => {
+                    return new Date(a.periode) - new Date(b.periode);
+                });
+                
+                const maxValeur = Math.max(...dataTriee.map(h => h.revenus));
+                const barWidth = Math.min(60, 400 / dataTriee.length);
+                
+                let html = '';
+                dataTriee.forEach(h => {
+                    const besoinsHeight = maxValeur > 0 ? (h.besoins / maxValeur) * 180 : 0;
+                    const enviesHeight = maxValeur > 0 ? (h.envies / maxValeur) * 180 : 0;
+                    const epargneHeight = maxValeur > 0 ? (Math.max(0, h.epargne) / maxValeur) * 180 : 0;
+                    
+                    const [year, month] = h.periode.split('-');
+                    const monthLabel = month + '/' + year.slice(-2);
+                    
+                    html += `<div class="chart-bar-wrapper" style="width:${barWidth}px;">
+                        <div style="display:flex; flex-direction:column-reverse; height:180px; width:100%;">
+                            <div style="height:${besoinsHeight}px; background:#4f46e5; border-radius:2px 2px 0 0; min-height:2px;" title="Besoins: ${BudgetApp.formatEuro(h.besoins)}"></div>
+                            <div style="height:${enviesHeight}px; background:#f59e0b; min-height:2px;" title="Envies: ${BudgetApp.formatEuro(h.envies)}"></div>
+                            <div style="height:${epargneHeight}px; background:#10b981; border-radius:0 0 2px 2px; min-height:2px;" title="Épargne: ${BudgetApp.formatEuro(h.epargne)}"></div>
+                        </div>
+                        <div class="chart-label">${monthLabel}</div>
+                    </div>`;
+                });
+                
+                // Ajouter lignes de seuil
+                const seuil50 = maxValeur > 0 ? (0.50 * 180) : 0;
+                const seuil80 = maxValeur > 0 ? (0.80 * 180) : 0;
+                
+                container.innerHTML = `
+                    <div style="position:absolute; left:0; right:0; top:20px; border-top:1px dashed #999; opacity:0.5;">
+                        <span style="font-size:0.7rem; color:#666; position:absolute; right:5px; top:-8px;">50%</span>
+                    </div>
+                    <div style="position:absolute; left:0; right:0; top:40px; border-top:1px dashed #999; opacity:0.5;">
+                        <span style="font-size:0.7rem; color:#666; position:absolute; right:5px; top:-8px;">80%</span>
+                    </div>
+                    <div style="display:flex; align-items:flex-end; justify-content:space-around; height:180px; padding:1rem; width:100%;">
+                        ${html}
+                    </div>
+                `;
+            },
+
+            // Conseils personnalisés
+            renderConseils(repartition) {
+                const container = document.getElementById('conseils-container');
+                const f = BudgetApp.formatEuro;
+                const conseils = [];
+                
+                const settings = BudgetApp.getItem('bm_settings') || { budget_ideal: [] };
+                const depensesParCat = BudgetApp.getDepensesParCategorie(BudgetApp.getCurrentMonthKey().replace('bm_mois_', ''));
+                
+                // SI besoins > 50%
+                if (repartition.besoins.pct > 50) {
+                    conseils.push({
+                        type: 'danger',
+                        texte: `Vos besoins représentent ${repartition.besoins.pct.toFixed(1)}% de vos revenus. Identifiez les charges compressibles : renégocier votre assurance, mutualiser un abonnement...`
+                    });
+                }
+                
+                // SI envies > 30%
+                if (repartition.envies.pct > 30) {
+                    const depassement = repartition.envies.reel - repartition.envies.plafond;
+                    conseils.push({
+                        type: 'warning',
+                        texte: `Vos dépenses plaisir dépassent le seuil recommandé de ${f(depassement)}. Astuce : appliquez la règle des 48h avant tout achat non planifié.`
+                    });
+                }
+                
+                // SI épargne < 20%
+                if (repartition.epargne.pct < 20) {
+                    if (repartition.solde >= 0) {
+                        conseils.push({
+                            type: 'info',
+                            texte: `Vous avez ${f(repartition.solde)} non alloués ce mois. Virement automatique recommandé vers un livret épargne dès réception du salaire.`
+                        });
+                    } else {
+                        conseils.push({
+                            type: 'danger',
+                            texte: `Budget déficitaire de ${f(Math.abs(repartition.solde))}. Priorité : réduire d'abord les envies, puis examiner les charges fixes renégociables.`
+                        });
+                    }
+                }
+                
+                // Vérifier dépassement par catégorie envie
+                if (settings.budget_ideal) {
+                    settings.budget_ideal.forEach(cat => {
+                        if (cat.type === 'envie' && cat.plafond) {
+                            const reel = depensesParCat[cat.name] || 0;
+                            if (reel > cat.plafond) {
+                                const depassement = reel - cat.plafond;
+                                conseils.push({
+                                    type: 'warning',
+                                    texte: `La catégorie "${cat.name}" a dépassé son plafond de ${f(depassement)} ce mois.`
+                                });
+                            }
+                        }
+                    });
+                }
+                
+                // Comparaison avec mois précédent
+                const archives = BudgetApp.getItem('bm_archives') || [];
+                if (archives.length >= 1) {
+                    const dernierMois = [...archives].sort((a, b) => new Date(b.periode) - new Date(a.periode))[0];
+                    const repMoisPrec = this.computeRepartition(dernierMois.periode);
+                    
+                    const diffEnvies = repartition.envies.reel - repMoisPrec.envies.reel;
+                    if (Math.abs(diffEnvies) > 10) {
+                        const fleche = diffEnvies > 0 ? '▲' : '▼';
+                        const couleur = diffEnvies > 0 ? 'text-danger' : 'text-success';
+                        conseils.push({
+                            type: diffEnvies > 0 ? 'warning' : 'success',
+                            texte: `Tendance : ${fleche} ${f(Math.abs(diffEnvies))} sur les envies vs mois dernier (${dernierMois.periode}).`
+                        });
+                    }
+                }
+                
+                // Si aucun conseil
+                if (conseils.length === 0) {
+                    conseils.push({
+                        type: 'success',
+                        texte: 'Félicitations ! Votre budget est bien équilibré selon la règle 50/30/20. Continuez ainsi !'
+                    });
+                }
+                
+                // Affichage
+                const classMap = {
+                    danger: 'alert-danger',
+                    warning: 'alert-warning',
+                    info: 'alert-info',
+                    success: 'alert-success'
+                };
+                
+                container.innerHTML = conseils.map(c => 
+                    `<div class="alert ${classMap[c.type]}">💡 ${c.texte}</div>`
+                ).join('');
+            },
+
+            // Fonction principale de rendu
+            renderStats() {
+                this.init();
+                const currentPeriod = BudgetApp.getCurrentMonthKey().replace('bm_mois_', '');
+                const repartition = this.computeRepartition(currentPeriod);
+                this.renderJauges(repartition);
+                this.renderHistorique();
+                this.renderConseils(repartition);
+            }
+        };
     </script>
 </body>
 </html>
