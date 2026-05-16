@@ -1,0 +1,1312 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestion de Budget Personnel</title>
+    <style>
+        :root {
+            --bg-primary: #ffffff;
+            --bg-secondary: #f9fafb;
+            --text-primary: #1f2937;
+            --text-secondary: #6b7280;
+            --border-color: #e5e7eb;
+            --sidebar-bg: #1f2937;
+            --sidebar-text: #f3f4f6;
+            --accent-color: #4f46e5;
+            --accent-hover: #4338ca;
+            --success-color: #10b981;
+            --warning-color: #f59e0b;
+            --danger-color: #ef4444;
+            --card-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            background-color: var(--bg-secondary);
+            color: var(--text-primary);
+            display: flex;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 240px;
+            background-color: var(--sidebar-bg);
+            color: var(--sidebar-text);
+            position: fixed;
+            top: 0; left: 0; bottom: 0;
+            z-index: 100;
+            display: flex;
+            flex-direction: column;
+            transition: transform 0.3s ease;
+        }
+        .sidebar.hidden { transform: translateX(-100%); }
+        .logo { padding: 1.5rem; font-size: 1.25rem; font-weight: bold; border-bottom: 1px solid rgba(255,255,255,0.1); }
+        .nav-links { padding: 1rem; flex: 1; }
+        .nav-link {
+            display: block; padding: 0.75rem 1rem; color: var(--sidebar-text);
+            text-decoration: none; border-radius: 0.5rem; margin-bottom: 0.25rem;
+            transition: background-color 0.2s; cursor: pointer;
+        }
+        .nav-link:hover, .nav-link.active { background-color: rgba(255,255,255,0.1); }
+        .nav-link i { margin-right: 0.75rem; width: 20px; text-align: center; display: inline-block; }
+
+        /* Main Content */
+        .main-content { flex: 1; margin-left: 240px; padding: 0; transition: margin-left 0.3s ease; }
+        
+        /* Header */
+        .header {
+            background-color: var(--bg-primary); padding: 1.5rem 2rem;
+            border-bottom: 1px solid var(--border-color);
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .month-display { font-size: 1.5rem; font-weight: 600; }
+        .balance-display { font-size: 1.25rem; font-weight: 600; color: var(--accent-color); }
+
+        /* Sections */
+        section { display: none; padding: 2rem; height: calc(100vh - 80px); overflow-y: auto; }
+        section.active { display: block; animation: fadeIn 0.3s ease-in-out; }
+        
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+
+        .card {
+            background-color: var(--bg-primary); border-radius: 0.75rem;
+            padding: 1.5rem; margin-bottom: 1.5rem; box-shadow: var(--card-shadow);
+        }
+        .card-title { font-size: 1.25rem; font-weight: 600; margin-bottom: 1rem; display: flex; justify-content: space-between; align-items: center; }
+
+        /* Forms & Inputs */
+        .form-row { display: flex; gap: 1rem; flex-wrap: wrap; margin-bottom: 1rem; }
+        .form-group { flex: 1; min-width: 200px; }
+        label { display: block; margin-bottom: 0.5rem; font-weight: 500; font-size: 0.9rem; }
+        input, select {
+            width: 100%; padding: 0.75rem; border: 1px solid var(--border-color);
+            border-radius: 0.5rem; font-size: 1rem;
+        }
+        button {
+            background-color: var(--accent-color); color: white; border: none;
+            padding: 0.75rem 1.5rem; border-radius: 0.5rem; cursor: pointer;
+            font-size: 1rem; font-weight: 500; transition: background 0.2s;
+        }
+        button:hover { background-color: var(--accent-hover); }
+        button.btn-danger { background-color: var(--danger-color); }
+        button.btn-danger:hover { background-color: #dc2626; }
+        button.btn-sm { padding: 0.4rem 0.8rem; font-size: 0.85rem; }
+        button.btn-outline {
+            background-color: transparent; border: 1px solid var(--border-color);
+            color: var(--text-primary);
+        }
+        button.btn-outline:hover { background-color: #f3f4f6; }
+        button.btn-link {
+            background: none; color: var(--accent-color); padding: 0; text-decoration: underline;
+        }
+        button.btn-link:hover { background: none; color: var(--accent-hover); }
+        button.btn-archive {
+            background-color: var(--text-primary);
+        }
+        button.btn-archive:hover {
+            background-color: #000;
+        }
+
+        /* Tables */
+        table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
+        th, td { padding: 1rem; text-align: left; border-bottom: 1px solid var(--border-color); }
+        th { background-color: #f8fafc; font-weight: 600; color: var(--text-secondary); }
+        tr:hover { background-color: #f9fafb; }
+        .actions-cell { text-align: right; }
+
+        /* Progress Bar & Gauges */
+        .progress-container {
+            background-color: #e5e7eb; border-radius: 999px; height: 1.2rem;
+            overflow: hidden; margin-top: 0.5rem; position: relative;
+        }
+        .progress-bar {
+            height: 100%; transition: width 0.5s ease, background-color 0.3s;
+        }
+        .progress-text {
+            position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 0.75rem; font-weight: 600; color: var(--text-primary);
+            text-shadow: 0 0 2px rgba(255,255,255,0.8);
+        }
+
+        /* Category Card */
+        .category-card {
+            border: 1px solid var(--border-color);
+            border-radius: 0.5rem;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            background-color: #fff;
+        }
+        .category-header {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 0.5rem;
+        }
+        .category-name { font-weight: 600; font-size: 1.1rem; }
+        .category-amounts { font-size: 0.9rem; color: var(--text-secondary); }
+
+        /* Summary Cards */
+        .summary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1.5rem; }
+        .summary-card { background: #f8fafc; padding: 1rem; border-radius: 0.5rem; border: 1px solid var(--border-color); }
+        .summary-label { font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 0.25rem; }
+        .summary-value { font-size: 1.25rem; font-weight: 700; }
+        .text-success { color: var(--success-color); }
+        .text-danger { color: var(--danger-color); }
+        .text-warning { color: var(--warning-color); }
+
+        /* Alerts */
+        .alert {
+            padding: 1rem; border-radius: 0.5rem; margin-bottom: 1rem;
+            font-weight: 500; display: flex; align-items: center; gap: 0.5rem;
+        }
+        .alert-danger { background-color: #fef2f2; color: #991b1b; border: 1px solid #fecaca; }
+        .alert-warning { background-color: #fffbeb; color: #92400e; border: 1px solid #fcd34d; }
+        .alert-success { background-color: #f0fdf4; color: #166534; border: 1px solid #bbf7d0; }
+        .alert-info { background-color: #eff6ff; color: #1e40af; border: 1px solid #bfdbfe; }
+
+        /* Dashboard Specifics */
+        .dashboard-balance-card {
+            background: linear-gradient(135deg, var(--accent-color), var(--accent-hover));
+            color: white;
+        }
+        .dashboard-balance-card .summary-label { color: rgba(255,255,255,0.8); }
+        .dashboard-balance-card .summary-value { color: white; font-size: 2.5rem; }
+        .dashboard-balance-card .summary-sub { font-size: 0.9rem; opacity: 0.9; margin-top: 0.5rem; }
+
+        .expense-list-item {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 0.75rem 0; border-bottom: 1px solid var(--border-color);
+        }
+        .expense-list-item:last-child { border-bottom: none; }
+        .expense-info { display: flex; flex-direction: column; }
+        .expense-cat { font-size: 0.8rem; color: var(--text-secondary); background: #e0e7ff; color: #4338ca; padding: 2px 6px; border-radius: 4px; width: fit-content; margin-top: 4px; }
+
+        /* Archive View Specifics */
+        .archive-card {
+            border: 1px solid var(--border-color);
+            border-radius: 0.75rem;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+            background: white;
+            transition: transform 0.2s;
+        }
+        .archive-card:hover { transform: translateY(-2px); box-shadow: var(--card-shadow); }
+        .archive-header {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 1px solid var(--border-color);
+        }
+        .archive-period { font-size: 1.25rem; font-weight: 700; color: var(--accent-color); }
+        .archive-stats {
+            display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-bottom: 1rem;
+        }
+        .archive-stat-item { text-align: center; }
+        .archive-stat-label { font-size: 0.8rem; color: var(--text-secondary); }
+        .archive-stat-value { font-weight: 600; font-size: 1.1rem; }
+        
+        /* Chart CSS */
+        .chart-container {
+            display: flex; align-items: flex-end; justify-content: space-around;
+            height: 200px; padding: 1rem; border: 1px solid var(--border-color);
+            border-radius: 0.5rem; background: #f8fafc;
+        }
+        .chart-bar-wrapper {
+            display: flex; flex-direction: column; align-items: center;
+            height: 100%; justify-content: flex-end; width: 15%;
+        }
+        .chart-bar {
+            width: 100%; background-color: var(--accent-color);
+            border-radius: 4px 4px 0 0; transition: height 0.5s ease;
+            min-height: 2px;
+        }
+        .chart-label {
+            margin-top: 0.5rem; font-size: 0.75rem; color: var(--text-secondary);
+            text-align: center; word-break: break-word;
+        }
+        .chart-value {
+            font-size: 0.7rem; font-weight: bold; margin-bottom: 4px; color: var(--text-primary);
+        }
+
+        /* Mobile Nav */
+        .mobile-nav {
+            display: none; position: fixed; bottom: 0; left: 0; right: 0;
+            background-color: var(--sidebar-bg); z-index: 100;
+        }
+        .mobile-nav-item { flex: 1; text-align: center; padding: 0.75rem 0; }
+        .mobile-nav-link {
+            color: var(--sidebar-text); text-decoration: none;
+            display: flex; flex-direction: column; align-items: center; font-size: 0.75rem;
+        }
+        .mobile-nav-link i { font-size: 1.25rem; margin-bottom: 0.25rem; }
+        .menu-toggle { display: none; background: none; border: none; color: var(--text-primary); font-size: 1.5rem; cursor: pointer; padding: 0.5rem; }
+
+        @media (max-width: 768px) {
+            .sidebar { transform: translateX(-100%); }
+            .sidebar.visible { transform: translateX(0); }
+            .main-content { margin-left: 0; }
+            .header { padding: 1rem; }
+            .month-display, .balance-display { font-size: 1rem; }
+            .mobile-nav { display: flex; }
+            section { padding: 1rem; height: calc(100vh - 120px); }
+            .menu-toggle { display: block; }
+            .form-row { flex-direction: column; }
+            .form-group { width: 100%; }
+            .dashboard-balance-card .summary-value { font-size: 2rem; }
+            .archive-stats { grid-template-columns: 1fr; }
+            .archive-stat-item { display: flex; justify-content: space-between; padding: 0.5rem 0; border-bottom: 1px solid #eee; }
+            .archive-stat-item:last-child { border-bottom: none; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Sidebar -->
+    <aside class="sidebar">
+        <div class="logo">Mon Budget</div>
+        <nav class="nav-links">
+            <a class="nav-link active" data-view="dashboard"><i>📊</i> Tableau de bord</a>
+            <a class="nav-link" data-view="expenses"><i>💸</i> Dépenses</a>
+            <a class="nav-link" data-view="budget"><i>🎯</i> Budget idéal</a>
+            <a class="nav-link" data-view="settings"><i>⚙️</i> Paramètres</a>
+            <a class="nav-link" data-view="archive"><i>📦</i> Archives</a>
+        </nav>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <header class="header">
+            <button class="menu-toggle">☰</button>
+            <div class="month-display" id="header-month">Chargement...</div>
+            <div class="balance-display" id="header-balance">€0,00</div>
+        </header>
+
+        <!-- DASHBOARD VIEW -->
+        <section id="vue-dashboard" class="active">
+            <h1 style="margin-bottom: 1.5rem;">Tableau de bord</h1>
+            <div id="dashboard-alert-container"></div>
+            <div class="card dashboard-balance-card">
+                <div class="summary-grid" style="margin-bottom: 0;">
+                    <div class="summary-card" style="background: rgba(255,255,255,0.1); border: none;">
+                        <div class="summary-label">Revenus Totaux</div>
+                        <div class="summary-value" id="dash-rev">€0,00</div>
+                    </div>
+                    <div class="summary-card" style="background: rgba(255,255,255,0.1); border: none;">
+                        <div class="summary-label">Charges Fixes</div>
+                        <div class="summary-value" id="dash-chg">€0,00</div>
+                    </div>
+                    <div class="summary-card" style="background: rgba(255,255,255,0.1); border: none;">
+                        <div class="summary-label">Dépenses Variables</div>
+                        <div class="summary-value" id="dash-exp">€0,00</div>
+                    </div>
+                    <div class="summary-card" style="background: rgba(255,255,255,0.2); border: none;">
+                        <div class="summary-label">SOLDE RESTANT</div>
+                        <div class="summary-value" id="dash-solde">€0,00</div>
+                        <div class="summary-sub" id="dash-solde-status">En attente de données</div>
+                    </div>
+                </div>
+            </div>
+            <div id="dashboard-category-alerts"></div>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem;">
+                <div class="card">
+                    <div class="card-title">
+                        <span>Progression par Catégorie</span>
+                        <button class="btn btn-sm btn-link" onclick="document.querySelector('[data-view=budget]').click()">Voir détails</button>
+                    </div>
+                    <div id="dash-categories-progress">
+                        <p style="color:var(--text-secondary); font-style:italic;">Aucune catégorie configurée.</p>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-title">
+                        <span>Dernières Dépenses</span>
+                        <button class="btn btn-sm btn-link" onclick="document.querySelector('[data-view=expenses]').click()">Voir tout</button>
+                    </div>
+                    <div id="dash-recent-expenses">
+                        <p style="color:var(--text-secondary); font-style:italic;">Aucune dépense ce mois-ci.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- EXPENSES VIEW -->
+        <section id="vue-expenses">
+            <h1>Dépenses du Mois</h1>
+            <div class="card">
+                <h2 class="card-title">Ajouter une dépense</h2>
+                <form id="expense-form">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="exp-date">Date</label>
+                            <input type="date" id="exp-date" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="exp-label">Libellé</label>
+                            <input type="text" id="exp-label" placeholder="Ex: Courses" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="exp-amount">Montant (€)</label>
+                            <input type="number" id="exp-amount" step="0.01" min="0.01" placeholder="0.00" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="exp-category">Catégorie</label>
+                            <select id="exp-category" required>
+                                <option value="Non catégorisé">Non catégorisé</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="exp-note">Note (optionnel)</label>
+                            <input type="text" id="exp-note" placeholder="Détails supplémentaires">
+                        </div>
+                        <div class="form-group" style="display:flex; align-items:flex-end;">
+                            <button type="submit" id="btn-add-expense">Ajouter</button>
+                            <button type="button" id="btn-cancel-edit" class="btn-danger" style="display:none; margin-left:10px;">Annuler</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="card">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
+                    <h2 class="card-title" style="margin:0;">Historique</h2>
+                    <div class="form-group" style="max-width: 200px;">
+                        <select id="filter-category">
+                            <option value="all">Toutes catégories</option>
+                        </select>
+                    </div>
+                </div>
+                <div style="overflow-x:auto;">
+                    <table id="expenses-table">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Libellé</th>
+                                <th>Catégorie</th>
+                                <th>Note</th>
+                                <th>Montant</th>
+                                <th class="actions-cell">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="expenses-list"></tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="card">
+                <h2 class="card-title">Suivi Budgétaire</h2>
+                <div class="summary-grid">
+                    <div class="summary-card">
+                        <div class="summary-label">Budget Disponible (Revenus - Charges)</div>
+                        <div class="summary-value" id="recap-available">€0,00</div>
+                    </div>
+                    <div class="summary-card">
+                        <div class="summary-label">Total Dépenses</div>
+                        <div class="summary-value text-danger" id="recap-spent">€0,00</div>
+                    </div>
+                    <div class="summary-card">
+                        <div class="summary-label">Restant Réel</div>
+                        <div class="summary-value" id="recap-remaining">€0,00</div>
+                    </div>
+                </div>
+                <div style="margin-top: 1.5rem;">
+                    <div style="display:flex; justify-content:space-between; font-size:0.9rem; margin-bottom:0.5rem;">
+                        <span>Progression des dépenses</span>
+                        <span id="recap-percent">0%</span>
+                    </div>
+                    <div class="progress-container">
+                        <div class="progress-bar" id="recap-progress" style="width: 0%;"></div>
+                        <div class="progress-text" id="recap-progress-text">En attente de données</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- BUDGET IDEAL VIEW -->
+        <section id="vue-budget">
+            <h1>Budget Idéal par Catégorie</h1>
+            <div class="card">
+                <h2 class="card-title">Configuration des Catégories & Plafonds</h2>
+                <form id="budget-form" class="form-row" style="align-items: flex-end; background: #f8fafc; padding: 1rem; border-radius: 0.5rem;">
+                    <div class="form-group">
+                        <label for="new-cat-name">Nom de la catégorie</label>
+                        <input type="text" id="new-cat-name" placeholder="Ex: Alimentation" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="new-cat-limit">Plafond mensuel (€)</label>
+                        <input type="number" id="new-cat-limit" step="0.01" min="0" placeholder="0.00" required>
+                    </div>
+                    <button type="submit">Ajouter / Mettre à jour</button>
+                </form>
+            </div>
+            <div class="card">
+                <h2 class="card-title">Suivi en Temps Réel (Ce Mois)</h2>
+                <div id="budget-ideal-list"></div>
+                <div style="margin-top: 2rem; padding-top: 1rem; border-top: 2px dashed var(--border-color);">
+                    <h3 style="margin-bottom: 1rem;">Total Budget vs Réel</h3>
+                    <div class="summary-grid">
+                        <div class="summary-card">
+                            <div class="summary-label">Plafond Total Alloué</div>
+                            <div class="summary-value" id="total-budget-limit">€0,00</div>
+                        </div>
+                        <div class="summary-card">
+                            <div class="summary-label">Dépenses Réelles Totales</div>
+                            <div class="summary-value text-danger" id="total-budget-spent">€0,00</div>
+                        </div>
+                    </div>
+                    <div class="progress-container" style="height: 2rem; margin-top: 1rem;">
+                        <div class="progress-bar" id="global-progress-bar" style="width: 0%;"></div>
+                        <div class="progress-text" id="global-progress-text">0% consommé</div>
+                    </div>
+                </div>
+            </div>
+            <div class="card">
+                <h2 class="card-title">Équilibre Budgétaire Global</h2>
+                <div id="balance-alert-container"></div>
+                <div class="summary-grid">
+                    <div class="summary-card">
+                        <div class="summary-label">Revenus Totaux</div>
+                        <div class="summary-value text-success" id="eq-revenus">€0,00</div>
+                    </div>
+                    <div class="summary-card">
+                        <div class="summary-label">- Charges Fixes</div>
+                        <div class="summary-value text-danger" id="eq-charges">€0,00</div>
+                    </div>
+                    <div class="summary-card">
+                        <div class="summary-label">- Plafonds Budget Idéal</div>
+                        <div class="summary-value" id="eq-plafonds">€0,00</div>
+                    </div>
+                    <div class="summary-card">
+                        <div class="summary-label">= Solde Non Alloué</div>
+                        <div class="summary-value" id="eq-solde">€0,00</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SETTINGS VIEW -->
+        <section id="vue-settings">
+            <h1>Paramètres</h1>
+            <div class="card section-revenus">
+                <h2 class="card-title">Revenus</h2>
+                <button id="btnAddRevenu" class="btn btn-sm" style="margin-bottom:1rem;">+ Ajouter un revenu</button>
+                <table id="tableRevenus">
+                    <thead>
+                        <tr>
+                            <th>Libellé</th>
+                            <th>Montant (€)</th>
+                            <th>Type</th>
+                            <th class="actions-cell">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tbodyRevenus">
+                        <tr id="formRevenuRow" class="form-row" style="display:none;">
+                            <td colspan="4">
+                                <form id="formRevenu" class="form-row" style="margin:0;">
+                                    <input type="text" id="inputLibelleRevenu" placeholder="Libellé" required />
+                                    <input type="number" id="inputMontantRevenu" placeholder="Montant" step="0.01" min="0" required />
+                                    <select id="inputTypeRevenu" required>
+                                        <option value="">Type</option>
+                                        <option value="Récurrent">Récurrent</option>
+                                        <option value="Ponctuel">Ponctuel</option>
+                                    </select>
+                                    <button type="submit" class="btn btn-sm">Valider</button>
+                                    <button type="button" id="cancelRevenuBtn" class="btn btn-danger btn-sm">Annuler</button>
+                                </form>
+                            </td>
+                        </tr>
+                    </tbody>
+                    <tfoot>
+                        <tr>
+                            <td colspan="3" style="text-align:right; font-weight:bold;">Total Revenus :</td>
+                            <td id="totalRevenus">0,00 €</td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+            <div class="card section-charges">
+                <h2 class="card-title">Charges Fixes</h2>
+                <button id="btnAddCharge" class="btn btn-sm" style="margin-bottom:1rem;">+ Ajouter une charge</button>
+                <table id="tableCharges">
+                    <thead>
+                        <tr>
+                            <th>Libellé</th>
+                            <th>Montant (€)</th>
+                            <th>Catégorie</th>
+                            <th class="actions-cell">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tbodyCharges">
+                        <tr id="formChargeRow" class="form-row" style="display:none;">
+                            <td colspan="4">
+                                <form id="formCharge" class="form-row" style="margin:0;">
+                                    <input type="text" id="inputLibelleCharge" placeholder="Libellé" required />
+                                    <input type="number" id="inputMontantCharge" placeholder="Montant" step="0.01" min="0" required />
+                                    <select id="inputCategorieCharge" required>
+                                        <option value="">Catégorie</option>
+                                        <option value="Logement">Logement</option>
+                                        <option value="Transport">Transport</option>
+                                        <option value="Alimentation">Alimentation</option>
+                                        <option value="Santé">Santé</option>
+                                        <option value="Loisirs">Loisirs</option>
+                                        <option value="Autre">Autre</option>
+                                    </select>
+                                    <button type="submit" class="btn btn-sm">Valider</button>
+                                    <button type="button" id="cancelChargeBtn" class="btn btn-danger btn-sm">Annuler</button>
+                                </form>
+                            </td>
+                        </tr>
+                    </tbody>
+                    <tfoot>
+                        <tr>
+                            <td colspan="3" style="text-align:right; font-weight:bold;">Total Charges :</td>
+                            <td id="totalCharges">0,00 €</td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+            <div class="card">
+                <h2 class="card-title">Capacité d'Épargne Mensuelle</h2>
+                <div class="summary-grid">
+                    <div class="summary-card">
+                        <div class="summary-label">Revenus Totaux</div>
+                        <div class="summary-value text-success" id="settings-total-rev">0,00 €</div>
+                    </div>
+                    <div class="summary-card">
+                        <div class="summary-label">Charges Fixes</div>
+                        <div class="summary-value text-danger" id="settings-total-chg">0,00 €</div>
+                    </div>
+                    <div class="summary-card">
+                        <div class="summary-label">Disponible pour variables</div>
+                        <div class="summary-value" id="settings-disponible">0,00 €</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ARCHIVE VIEW (PROMPT 6) -->
+        <section id="vue-archive">
+            <h1>Archives Mensuelles</h1>
+            
+            <!-- Clôture du mois -->
+            <div class="card" style="border-left: 5px solid var(--accent-color);">
+                <h2 class="card-title">Clôturer le mois en cours</h2>
+                <p style="margin-bottom: 1rem; color: var(--text-secondary);">
+                    Cette action verrouillera les données du mois actuel (<span id="archive-current-month-label">...</span>) et créera un nouveau mois vide.
+                </p>
+                <button id="btn-archive-month" class="btn btn-archive">
+                    📦 Archiver le mois de <span id="btn-archive-month-label">...</span>
+                </button>
+                <div id="archive-recap" style="margin-top: 1rem; display: none;"></div>
+            </div>
+
+            <!-- Comparaison Graphique -->
+            <div class="card">
+                <h2 class="card-title">Comparaison des 6 derniers mois</h2>
+                <div id="comparison-chart" class="chart-container">
+                    <p style="color:var(--text-secondary); align-self:center;">Aucune donnée suffisante pour le graphique.</p>
+                </div>
+            </div>
+
+            <!-- Liste des archives -->
+            <div class="card">
+                <h2 class="card-title">Historique des mois archivés</h2>
+                <div id="archives-list">
+                    <p style="text-align:center; color:var(--text-secondary); padding: 2rem;">Aucun mois archivé pour le moment.</p>
+                </div>
+            </div>
+
+            <!-- Détail d'un mois archivé (Modal-like inline) -->
+            <div id="archive-detail-view" class="card" style="display: none; border: 2px solid var(--accent-color);">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
+                    <h2 class="card-title" style="margin:0;" id="detail-month-title">Détail du mois</h2>
+                    <button class="btn btn-sm btn-outline" onclick="document.getElementById('archive-detail-view').style.display='none'">Fermer</button>
+                </div>
+                <div id="detail-content"></div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Mobile Navigation -->
+    <nav class="mobile-nav">
+        <div class="mobile-nav-item"><a class="mobile-nav-link active" data-view="dashboard"><i>📊</i><span>Accueil</span></a></div>
+        <div class="mobile-nav-item"><a class="mobile-nav-link" data-view="expenses"><i>💸</i><span>Dépenses</span></a></div>
+        <div class="mobile-nav-item"><a class="mobile-nav-link" data-view="budget"><i>🎯</i><span>Budget</span></a></div>
+        <div class="mobile-nav-item"><a class="mobile-nav-link" data-view="settings"><i>⚙️</i><span>Param.</span></a></div>
+        <div class="mobile-nav-item"><a class="mobile-nav-link" data-view="archive"><i>📦</i><span>Archives</span></a></div>
+    </nav>
+
+    <!-- CORE MODULE (PROMPT 1) -->
+    <script src="budget-app-core.js"></script>
+
+    <!-- APP LOGIC -->
+    <script>
+        // Initialisation globale
+        document.addEventListener('DOMContentLoaded', () => {
+            // 1. Initialiser le cœur
+            if (typeof BudgetApp !== 'undefined' && BudgetApp.initApp) {
+                BudgetApp.initApp();
+            } else {
+                console.error("Le module budget-app-core.js n'est pas chargé ou incorrect.");
+                alert("Erreur de chargement du module cœur.");
+                return;
+            }
+
+            // 2. Configuration spécifique aux vues
+            
+            // --- VUE DÉPENSES ---
+            const ExpensesModule = {
+                currentEditId: null,
+                init() { this.bindEvents(); this.populateCategories(); },
+                bindEvents() {
+                    document.getElementById('expense-form').addEventListener('submit', (e) => { e.preventDefault(); this.handleFormSubmit(); });
+                    document.getElementById('btn-cancel-edit').addEventListener('click', () => this.cancelEdit());
+                    document.getElementById('filter-category').addEventListener('change', () => this.renderList());
+                    document.getElementById('expenses-list').addEventListener('click', (e) => {
+                        const target = e.target; const row = target.closest('tr'); if (!row) return; const id = row.dataset.id;
+                        if (target.classList.contains('btn-delete')) { if(confirm('Supprimer cette dépense ?')) this.deleteExpense(id); }
+                        else if (target.classList.contains('btn-edit')) { this.editExpense(id); }
+                    });
+                },
+                populateCategories() {
+                    const settings = BudgetApp.getItem('bm_settings') || { budget_ideal: [] };
+                    const categories = settings.budget_ideal ? settings.budget_ideal.map(c => c.name) : [];
+                    const expSelect = document.getElementById('exp-category');
+                    const filterSelect = document.getElementById('filter-category');
+                    let optionsHtml = '<option value="Non catégorisé">Non catégorisé</option>';
+                    let filterOptionsHtml = '<option value="all">Toutes catégories</option>';
+                    categories.forEach(cat => {
+                        optionsHtml += `<option value="${cat}">${cat}</option>`;
+                        filterOptionsHtml += `<option value="${cat}">${cat}</option>`;
+                    });
+                    expSelect.innerHTML = optionsHtml; filterSelect.innerHTML = filterOptionsHtml;
+                },
+                handleFormSubmit() {
+                    const date = document.getElementById('exp-date').value;
+                    const label = document.getElementById('exp-label').value.trim();
+                    const amount = parseFloat(document.getElementById('exp-amount').value);
+                    const category = document.getElementById('exp-category').value;
+                    const note = document.getElementById('exp-note').value.trim();
+                    if (!date || !label || isNaN(amount) || amount <= 0) { alert("Champs obligatoires manquants ou invalides."); return; }
+                    const monthKey = BudgetApp.getCurrentMonthKey();
+                    let monthData = BudgetApp.getItem(monthKey) || { expenses: [] };
+                    if (this.currentEditId) {
+                        const index = monthData.expenses.findIndex(e => e.id === this.currentEditId);
+                        if (index !== -1) monthData.expenses[index] = { ...monthData.expenses[index], date, label, amount, category, note };
+                        this.currentEditId = null;
+                        document.getElementById('btn-add-expense').textContent = "Ajouter";
+                        document.getElementById('btn-cancel-edit').style.display = 'none';
+                    } else {
+                        monthData.expenses.push({ id: BudgetApp.generateId(), date, label, amount, category, note });
+                    }
+                    BudgetApp.setItem(monthKey, monthData);
+                    this.resetForm(); this.renderList(); this.updateSummary();
+                    if (monthKey === BudgetApp.getCurrentMonthKey()) BudgetApp.updateHeader();
+                },
+                renderList() {
+                    const monthKey = BudgetApp.getCurrentMonthKey();
+                    const monthData = BudgetApp.getItem(monthKey) || { expenses: [] };
+                    let expenses = monthData.expenses || [];
+                    const filter = document.getElementById('filter-category').value;
+                    expenses.sort((a, b) => new Date(b.date) - new Date(a.date));
+                    if (filter !== 'all') expenses = expenses.filter(e => e.category === filter);
+                    const tbody = document.getElementById('expenses-list'); tbody.innerHTML = '';
+                    if (expenses.length === 0) { tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;">Aucune dépense trouvée.</td></tr>'; return; }
+                    expenses.forEach(exp => {
+                        const tr = document.createElement('tr'); tr.dataset.id = exp.id;
+                        tr.innerHTML = `
+                            <td>${BudgetApp.formatDate(exp.date)}</td>
+                            <td><strong>${exp.label}</strong></td>
+                            <td><span style="background:#e0e7ff; color:#4338ca; padding:2px 8px; border-radius:12px; font-size:0.85rem;">${exp.category}</span></td>
+                            <td style="color:var(--text-secondary); font-size:0.9rem;">${exp.note || '-'}</td>
+                            <td class="text-danger" style="font-weight:bold;">-${BudgetApp.formatEuro(exp.amount)}</td>
+                            <td class="actions-cell">
+                                <button class="btn btn-sm btn-edit" style="background-color:var(--warning-color);">✏️</button>
+                                <button class="btn btn-sm btn-delete" style="background-color:var(--danger-color);">🗑️</button>
+                            </td>`;
+                        tbody.appendChild(tr);
+                    });
+                },
+                editExpense(id) {
+                    const monthKey = BudgetApp.getCurrentMonthKey();
+                    const monthData = BudgetApp.getItem(monthKey); if (!monthData) return;
+                    const exp = monthData.expenses.find(e => e.id === id); if (!exp) return;
+                    document.getElementById('exp-date').value = exp.date;
+                    document.getElementById('exp-label').value = exp.label;
+                    document.getElementById('exp-amount').value = exp.amount;
+                    document.getElementById('exp-category').value = exp.category;
+                    document.getElementById('exp-note').value = exp.note || '';
+                    this.currentEditId = id;
+                    document.getElementById('btn-add-expense').textContent = "Modifier";
+                    document.getElementById('btn-cancel-edit').style.display = 'inline-block';
+                    document.getElementById('expense-form').scrollIntoView({ behavior: 'smooth' });
+                },
+                deleteExpense(id) {
+                    const monthKey = BudgetApp.getCurrentMonthKey();
+                    let monthData = BudgetApp.getItem(monthKey); if (!monthData) return;
+                    monthData.expenses = monthData.expenses.filter(e => e.id !== id);
+                    BudgetApp.setItem(monthKey, monthData);
+                    if (this.currentEditId === id) this.cancelEdit();
+                    this.renderList(); this.updateSummary();
+                    if (monthKey === BudgetApp.getCurrentMonthKey()) BudgetApp.updateHeader();
+                },
+                cancelEdit() {
+                    this.currentEditId = null;
+                    document.getElementById('expense-form').reset();
+                    document.getElementById('exp-date').valueAsDate = new Date();
+                    document.getElementById('btn-add-expense').textContent = "Ajouter";
+                    document.getElementById('btn-cancel-edit').style.display = 'none';
+                },
+                resetForm() {
+                    document.getElementById('expense-form').reset();
+                    document.getElementById('exp-date').valueAsDate = new Date();
+                    if (!this.currentEditId) {
+                         document.getElementById('btn-add-expense').textContent = "Ajouter";
+                         document.getElementById('btn-cancel-edit').style.display = 'none';
+                    }
+                },
+                updateSummary() {
+                    const monthKey = BudgetApp.getCurrentMonthKey();
+                    const monthData = BudgetApp.getItem(monthKey) || { expenses: [] };
+                    const settings = BudgetApp.getItem('bm_settings') || { revenus: [], charges: [] };
+                    const totalRevenus = (settings.revenus || []).reduce((sum, r) => sum + (parseFloat(r.montant)||0), 0);
+                    const totalCharges = (settings.charges || []).reduce((sum, c) => sum + (parseFloat(c.montant)||0), 0);
+                    const totalDepenses = (monthData.expenses || []).reduce((sum, e) => sum + (parseFloat(e.amount)||0), 0);
+                    const availableBudget = totalRevenus - totalCharges;
+                    const remaining = availableBudget - totalDepenses;
+                    document.getElementById('recap-available').textContent = BudgetApp.formatEuro(availableBudget);
+                    document.getElementById('recap-spent').textContent = "-" + BudgetApp.formatEuro(totalDepenses);
+                    const remEl = document.getElementById('recap-remaining');
+                    remEl.textContent = BudgetApp.formatEuro(remaining);
+                    remEl.className = 'summary-value ' + (remaining >= 0 ? 'text-success' : 'text-danger');
+                    const percent = availableBudget > 0 ? (totalDepenses / availableBudget) * 100 : 0;
+                    const progressBar = document.getElementById('recap-progress');
+                    const progressText = document.getElementById('recap-progress-text');
+                    const percentDisplay = document.getElementById('recap-percent');
+                    percentDisplay.textContent = percent.toFixed(1) + '%';
+                    if (percent > 100) {
+                        progressBar.style.width = '100%'; progressBar.style.backgroundColor = 'var(--danger-color)';
+                        progressText.textContent = "Budget dépassé !"; progressText.style.color = 'var(--danger-color)';
+                    } else {
+                        progressBar.style.width = percent + '%';
+                        progressBar.style.backgroundColor = percent > 80 ? 'var(--warning-color)' : 'var(--success-color)';
+                        progressText.textContent = `${BudgetApp.formatEuro(remaining)} restants`; progressText.style.color = 'var(--text-primary)';
+                    }
+                }
+            };
+
+            // --- VUE PARAMÈTRES ---
+            const SettingsModule = {
+                init() { this.bindEvents(); },
+                bindEvents() {
+                    document.getElementById('btnAddRevenu').addEventListener('click', () => { document.getElementById('formRevenuRow').style.display = 'table-row'; });
+                    document.getElementById('cancelRevenuBtn').addEventListener('click', () => { document.getElementById('formRevenuRow').style.display = 'none'; document.getElementById('formRevenu').reset(); });
+                    document.getElementById('formRevenu').addEventListener('submit', (e) => {
+                        e.preventDefault();
+                        const libelle = document.getElementById('inputLibelleRevenu').value;
+                        const montant = parseFloat(document.getElementById('inputMontantRevenu').value);
+                        const type = document.getElementById('inputTypeRevenu').value;
+                        if(libelle && montant > 0 && type) {
+                            let settings = BudgetApp.getItem('bm_settings') || { revenus: [], charges: [], budget_ideal: [] };
+                            if(!settings.revenus) settings.revenus = [];
+                            settings.revenus.push({ id: Date.now().toString(), libelle, montant, type });
+                            BudgetApp.setItem('bm_settings', settings);
+                            this.renderSettings();
+                            document.getElementById('formRevenuRow').style.display = 'none'; document.getElementById('formRevenu').reset();
+                        }
+                    });
+                    document.getElementById('btnAddCharge').addEventListener('click', () => { document.getElementById('formChargeRow').style.display = 'table-row'; });
+                    document.getElementById('cancelChargeBtn').addEventListener('click', () => { document.getElementById('formChargeRow').style.display = 'none'; document.getElementById('formCharge').reset(); });
+                    document.getElementById('formCharge').addEventListener('submit', (e) => {
+                        e.preventDefault();
+                        const libelle = document.getElementById('inputLibelleCharge').value;
+                        const montant = parseFloat(document.getElementById('inputMontantCharge').value);
+                        const categorie = document.getElementById('inputCategorieCharge').value;
+                        if(libelle && montant > 0 && categorie) {
+                            let settings = BudgetApp.getItem('bm_settings') || { revenus: [], charges: [], budget_ideal: [] };
+                            if(!settings.charges) settings.charges = [];
+                            settings.charges.push({ id: Date.now().toString(), libelle, montant, categorie });
+                            BudgetApp.setItem('bm_settings', settings);
+                            this.renderSettings();
+                            document.getElementById('formChargeRow').style.display = 'none'; document.getElementById('formCharge').reset();
+                        }
+                    });
+                    document.getElementById('tbodyRevenus').addEventListener('click', (e) => {
+                        if(e.target.classList.contains('btn-danger')) {
+                            const id = e.target.dataset.id;
+                            let settings = BudgetApp.getItem('bm_settings');
+                            settings.revenus = settings.revenus.filter(r => r.id != id);
+                            BudgetApp.setItem('bm_settings', settings); this.renderSettings();
+                        }
+                    });
+                    document.getElementById('tbodyCharges').addEventListener('click', (e) => {
+                        if(e.target.classList.contains('btn-danger')) {
+                            const id = e.target.dataset.id;
+                            let settings = BudgetApp.getItem('bm_settings');
+                            settings.charges = settings.charges.filter(c => c.id != id);
+                            BudgetApp.setItem('bm_settings', settings); this.renderSettings();
+                        }
+                    });
+                },
+                renderSettings() {
+                    const settings = BudgetApp.getItem('bm_settings') || { revenus: [], charges: [] };
+                    const tbodyRev = document.getElementById('tbodyRevenus'); const formRowRev = document.getElementById('formRevenuRow');
+                    tbodyRev.innerHTML = ''; tbodyRev.appendChild(formRowRev);
+                    let totalRev = 0;
+                    (settings.revenus || []).forEach(r => {
+                        totalRev += parseFloat(r.montant);
+                        const tr = document.createElement('tr');
+                        tr.innerHTML = `<td>${r.libelle}</td><td>${BudgetApp.formatEuro(r.montant)}</td><td>${r.type}</td>
+                        <td class="actions-cell"><button class="btn btn-sm btn-danger" data-id="${r.id}">Suppr</button></td>`;
+                        tbodyRev.insertBefore(tr, formRowRev);
+                    });
+                    document.getElementById('totalRevenus').textContent = BudgetApp.formatEuro(totalRev);
+                    document.getElementById('settings-total-rev').textContent = BudgetApp.formatEuro(totalRev);
+                    const tbodyChg = document.getElementById('tbodyCharges'); const formRowChg = document.getElementById('formChargeRow');
+                    tbodyChg.innerHTML = ''; tbodyChg.appendChild(formRowChg);
+                    let totalChg = 0;
+                    (settings.charges || []).forEach(c => {
+                        totalChg += parseFloat(c.montant);
+                        const tr = document.createElement('tr');
+                        tr.innerHTML = `<td>${c.libelle}</td><td>${BudgetApp.formatEuro(c.montant)}</td><td>${c.categorie}</td>
+                        <td class="actions-cell"><button class="btn btn-sm btn-danger" data-id="${c.id}">Suppr</button></td>`;
+                        tbodyChg.insertBefore(tr, formRowChg);
+                    });
+                    document.getElementById('totalCharges').textContent = BudgetApp.formatEuro(totalChg);
+                    document.getElementById('settings-total-chg').textContent = BudgetApp.formatEuro(totalChg);
+                    const disponible = totalRev - totalChg;
+                    document.getElementById('settings-disponible').textContent = BudgetApp.formatEuro(disponible);
+                    ExpensesModule.updateSummary(); BudgetApp.updateHeader();
+                }
+            };
+
+            // --- VUE BUDGET IDÉAL ---
+            const BudgetModule = {
+                init() { this.bindEvents(); },
+                bindEvents() {
+                    document.getElementById('budget-form').addEventListener('submit', (e) => {
+                        e.preventDefault();
+                        const name = document.getElementById('new-cat-name').value.trim();
+                        const limit = parseFloat(document.getElementById('new-cat-limit').value);
+                        if(name && limit > 0) {
+                            let settings = BudgetApp.getItem('bm_settings') || { budget_ideal: [] };
+                            if(!settings.budget_ideal) settings.budget_ideal = [];
+                            const existingIndex = settings.budget_ideal.findIndex(c => c.name.toLowerCase() === name.toLowerCase());
+                            if (existingIndex >= 0) {
+                                if(confirm(`La catégorie "${name}" existe déjà. Voulez-vous mettre à jour son plafond à ${limit}€ ?`)) {
+                                    settings.budget_ideal[existingIndex].limit = limit;
+                                } else { return; }
+                            } else { settings.budget_ideal.push({ name, limit }); }
+                            BudgetApp.setItem('bm_settings', settings);
+                            document.getElementById('new-cat-name').value = ''; document.getElementById('new-cat-limit').value = '';
+                            this.renderCategories(); ExpensesModule.populateCategories();
+                        }
+                    });
+                },
+                renderCategories() {
+                    const settings = BudgetApp.getItem('bm_settings') || { budget_ideal: [], revenus: [], charges: [] };
+                    const monthKey = BudgetApp.getCurrentMonthKey();
+                    const monthData = BudgetApp.getItem(monthKey) || { expenses: [] };
+                    const container = document.getElementById('budget-ideal-list'); container.innerHTML = '';
+                    const budgetIdealList = settings.budget_ideal || [];
+                    let totalLimit = 0; let totalSpentInCategories = 0;
+                    if (budgetIdealList.length === 0) {
+                        container.innerHTML = '<p style="text-align:center; color:var(--text-secondary);">Aucune catégorie configurée. Ajoutez-en une ci-dessus.</p>';
+                    } else {
+                        budgetIdealList.forEach(cat => {
+                            const spent = (monthData.expenses || []).filter(e => e.category === cat.name).reduce((sum, e) => sum + parseFloat(e.amount), 0);
+                            const percent = cat.limit > 0 ? (spent / cat.limit) * 100 : 0;
+                            let colorClass = 'var(--success-color)';
+                            if (percent >= 80 && percent <= 100) colorClass = 'var(--warning-color)';
+                            if (percent > 100) colorClass = 'var(--danger-color)';
+                            totalLimit += cat.limit; totalSpentInCategories += spent;
+                            const card = document.createElement('div'); card.className = 'category-card';
+                            card.innerHTML = `
+                                <div class="category-header">
+                                    <span class="category-name">${cat.name}</span>
+                                    <div class="category-amounts">
+                                        <strong>${BudgetApp.formatEuro(spent)}</strong> / ${BudgetApp.formatEuro(cat.limit)}
+                                        <button class="btn btn-sm btn-outline" style="margin-left:10px;" onclick="BudgetModule.deleteCategory('${cat.name}')">Supprimer</button>
+                                    </div>
+                                </div>
+                                <div class="progress-container">
+                                    <div class="progress-bar" style="width: ${Math.min(percent, 100)}%; background-color: ${colorClass};"></div>
+                                    <div class="progress-text">${percent.toFixed(1)}%</div>
+                                </div>`;
+                            container.appendChild(card);
+                        });
+                    }
+                    document.getElementById('total-budget-limit').textContent = BudgetApp.formatEuro(totalLimit);
+                    document.getElementById('total-budget-spent').textContent = BudgetApp.formatEuro(totalSpentInCategories);
+                    const globalPercent = totalLimit > 0 ? (totalSpentInCategories / totalLimit) * 100 : 0;
+                    const globalBar = document.getElementById('global-progress-bar'); const globalText = document.getElementById('global-progress-text');
+                    globalBar.style.width = Math.min(globalPercent, 100) + '%';
+                    globalBar.style.backgroundColor = globalPercent > 100 ? 'var(--danger-color)' : (globalPercent > 80 ? 'var(--warning-color)' : 'var(--success-color)');
+                    globalText.textContent = `${globalPercent.toFixed(1)}% consommé`;
+                    const totalRevenus = (settings.revenus || []).reduce((sum, r) => sum + (parseFloat(r.montant)||0), 0);
+                    const totalCharges = (settings.charges || []).reduce((sum, c) => sum + (parseFloat(c.montant)||0), 0);
+                    const soldeNonAlloue = totalRevenus - totalCharges - totalLimit;
+                    document.getElementById('eq-revenus').textContent = BudgetApp.formatEuro(totalRevenus);
+                    document.getElementById('eq-charges').textContent = "-" + BudgetApp.formatEuro(totalCharges);
+                    document.getElementById('eq-plafonds').textContent = "-" + BudgetApp.formatEuro(totalLimit);
+                    const eqSoldeEl = document.getElementById('eq-solde');
+                    eqSoldeEl.textContent = BudgetApp.formatEuro(soldeNonAlloue);
+                    eqSoldeEl.className = 'summary-value ' + (soldeNonAlloue >= 0 ? 'text-success' : 'text-danger');
+                    const alertContainer = document.getElementById('balance-alert-container'); alertContainer.innerHTML = '';
+                    if (soldeNonAlloue < 0) {
+                        alertContainer.innerHTML = `<div class="alert alert-danger">⚠️ <strong>Budget déséquilibré :</strong> Vos plafonds de dépenses dépassent votre capacité réelle de ${BudgetApp.formatEuro(Math.abs(soldeNonAlloue))}. Réduisez les plafonds ou augmentez vos revenus.</div>`;
+                    } else if (soldeNonAlloue > 0) {
+                        alertContainer.innerHTML = `<div class="alert alert-success">✅ <strong>Bonne gestion :</strong> Il vous reste ${BudgetApp.formatEuro(soldeNonAlloue)} non alloué. Pensez à l'affecter à l'épargne ou à des projets !</div>`;
+                    }
+                },
+                deleteCategory(name) {
+                    if(confirm(`Supprimer la catégorie "${name}" et son plafond ?`)) {
+                        let settings = BudgetApp.getItem('bm_settings');
+                        settings.budget_ideal = settings.budget_ideal.filter(c => c.name !== name);
+                        BudgetApp.setItem('bm_settings', settings);
+                        this.renderCategories(); ExpensesModule.populateCategories();
+                    }
+                }
+            };
+
+            // --- VUE TABLEAU DE BORD ---
+            const DashboardModule = {
+                render() {
+                    const settings = BudgetApp.getItem('bm_settings') || { revenus: [], charges: [], budget_ideal: [] };
+                    const monthKey = BudgetApp.getCurrentMonthKey();
+                    const monthData = BudgetApp.getItem(monthKey) || { expenses: [] };
+                    const totalRevenus = (settings.revenus || []).reduce((sum, r) => sum + (parseFloat(r.montant)||0), 0);
+                    const totalCharges = (settings.charges || []).reduce((sum, c) => sum + (parseFloat(c.montant)||0), 0);
+                    const totalDepenses = (monthData.expenses || []).reduce((sum, e) => sum + (parseFloat(e.amount)||0), 0);
+                    const solde = totalRevenus - totalCharges - totalDepenses;
+                    document.getElementById('dash-rev').textContent = BudgetApp.formatEuro(totalRevenus);
+                    document.getElementById('dash-chg').textContent = BudgetApp.formatEuro(totalCharges);
+                    document.getElementById('dash-exp').textContent = BudgetApp.formatEuro(totalDepenses);
+                    const soldeEl = document.getElementById('dash-solde'); const soldeStatusEl = document.getElementById('dash-solde-status');
+                    soldeEl.textContent = BudgetApp.formatEuro(solde);
+                    if (solde < 0) { soldeEl.style.color = '#fca5a5'; soldeStatusEl.textContent = "⚠️ Attention : Solde négatif"; }
+                    else if (solde === 0) { soldeEl.style.color = '#fcd34d'; soldeStatusEl.textContent = "Compte à zéro"; }
+                    else { soldeEl.style.color = '#ffffff'; soldeStatusEl.textContent = "Situation saine"; }
+                    const alertContainer = document.getElementById('dashboard-alert-container'); alertContainer.innerHTML = '';
+                    if (solde < 0) {
+                        alertContainer.innerHTML = `<div class="alert alert-danger">🚨 <strong>Alerte Budget :</strong> Votre solde actuel est négatif de ${BudgetApp.formatEuro(Math.abs(solde))}. Vérifiez vos dépenses ou vos charges fixes.</div>`;
+                    }
+                    const catContainer = document.getElementById('dash-categories-progress'); catContainer.innerHTML = '';
+                    const budgetIdealList = settings.budget_ideal || [];
+                    let hasAlertCategory = false;
+                    if (budgetIdealList.length === 0) {
+                        catContainer.innerHTML = '<p style="color:var(--text-secondary); font-style:italic;">Aucune catégorie configurée dans "Budget idéal".</p>';
+                    } else {
+                        budgetIdealList.forEach(cat => {
+                            const spent = (monthData.expenses || []).filter(e => e.category === cat.name).reduce((sum, e) => sum + parseFloat(e.amount), 0);
+                            const percent = cat.limit > 0 ? (spent / cat.limit) * 100 : 0;
+                            let colorClass = 'var(--success-color)';
+                            if (percent >= 80 && percent <= 100) colorClass = 'var(--warning-color)';
+                            if (percent > 100) { colorClass = 'var(--danger-color)'; hasAlertCategory = true; }
+                            const div = document.createElement('div'); div.style.marginBottom = '1rem';
+                            div.innerHTML = `
+                                <div style="display:flex; justify-content:space-between; font-size:0.9rem; margin-bottom:0.25rem;">
+                                    <strong>${cat.name}</strong>
+                                    <span style="color:${colorClass}">${percent.toFixed(0)}%</span>
+                                </div>
+                                <div class="progress-container" style="height: 0.8rem;">
+                                    <div class="progress-bar" style="width: ${Math.min(percent, 100)}%; background-color: ${colorClass};"></div>
+                                </div>
+                                <div style="font-size:0.75rem; color:var(--text-secondary); text-align:right; margin-top:2px;">
+                                    ${BudgetApp.formatEuro(spent)} / ${BudgetApp.formatEuro(cat.limit)}
+                                </div>`;
+                            catContainer.appendChild(div);
+                        });
+                    }
+                    const catAlertContainer = document.getElementById('dashboard-category-alerts'); catAlertContainer.innerHTML = '';
+                    if (hasAlertCategory) {
+                        const overCategories = budgetIdealList.filter(cat => {
+                            const spent = (monthData.expenses || []).filter(e => e.category === cat.name).reduce((sum, e) => sum + parseFloat(e.amount), 0);
+                            return cat.limit > 0 && (spent / cat.limit) > 1;
+                        }).map(c => c.name).join(', ');
+                        catAlertContainer.innerHTML = `<div class="alert alert-warning">⚠️ <strong>Dépassement de budget :</strong> Les catégories suivantes ont dépassé leur plafond : <em>${overCategories}</em>.</div>`;
+                    }
+                    const recentContainer = document.getElementById('dash-recent-expenses'); recentContainer.innerHTML = '';
+                    const recentExpenses = [...(monthData.expenses || [])].sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 5);
+                    if (recentExpenses.length === 0) {
+                        recentContainer.innerHTML = '<p style="color:var(--text-secondary); font-style:italic; text-align:center; padding:1rem;">Aucune dépense enregistrée ce mois-ci.</p>';
+                    } else {
+                        recentExpenses.forEach(exp => {
+                            const div = document.createElement('div'); div.className = 'expense-list-item';
+                            div.innerHTML = `
+                                <div class="expense-info">
+                                    <strong>${exp.label}</strong>
+                                    <span class="expense-cat">${exp.category}</span>
+                                </div>
+                                <div style="font-weight:bold; color:var(--danger-color);">-${BudgetApp.formatEuro(exp.amount)}</div>`;
+                            recentContainer.appendChild(div);
+                        });
+                    }
+                }
+            };
+
+            // --- VUE ARCHIVES (PROMPT 6) ---
+            const ArchiveModule = {
+                init() {
+                    this.bindEvents();
+                    this.renderArchives();
+                    this.renderComparisonChart();
+                    this.updateCurrentMonthLabel();
+                },
+                bindEvents() {
+                    document.getElementById('btn-archive-month').addEventListener('click', () => {
+                        this.archiveCurrentMonth();
+                    });
+                },
+                updateCurrentMonthLabel() {
+                    const now = new Date();
+                    const monthNames = ['Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'];
+                    const label = `${monthNames[now.getMonth()]} ${now.getFullYear()}`;
+                    document.getElementById('archive-current-month-label').textContent = label;
+                    document.getElementById('btn-archive-month-label').textContent = label;
+                },
+                archiveCurrentMonth() {
+                    const currentKey = BudgetApp.getCurrentMonthKey();
+                    const currentData = BudgetApp.getItem(currentKey);
+                    
+                    if (!currentData || (currentData.expenses && currentData.expenses.length === 0)) {
+                        if(!confirm("Le mois actuel semble vide. Voulez-vous vraiment l'archiver ?")) return;
+                    } else {
+                        // Calcul récapitulatif avant confirmation
+                        const settings = BudgetApp.getItem('bm_settings') || { revenus: [], charges: [] };
+                        const totalRev = settings.revenus.reduce((a,b)=>a+parseFloat(b.montant||0),0);
+                        const totalChg = settings.charges.reduce((a,b)=>a+parseFloat(b.montant||0),0);
+                        const totalExp = currentData.expenses.reduce((a,b)=>a+parseFloat(b.amount||0),0);
+                        const solde = totalRev - totalChg - totalExp;
+                        
+                        // Identifier les catégories dépassées
+                        const budgetIdeal = settings.budget_ideal || [];
+                        const overCats = budgetIdeal.filter(cat => {
+                            const spent = currentData.expenses.filter(e => e.category === cat.name).reduce((a,b)=>a+parseFloat(b.amount||0),0);
+                            return cat.limit > 0 && spent > cat.limit;
+                        }).map(c => c.name).join(', ');
+
+                        let recapHtml = `
+                            <div class="alert alert-info" style="margin-top:1rem;">
+                                <strong>Récapitulatif de clôture :</strong><br>
+                                Revenus: ${BudgetApp.formatEuro(totalRev)} | Charges: ${BudgetApp.formatEuro(totalChg)} | Dépenses: ${BudgetApp.formatEuro(totalExp)}<br>
+                                <strong>Solde final: ${BudgetApp.formatEuro(solde)}</strong>
+                            </div>
+                        `;
+                        if (overCats) {
+                            recapHtml += `<div class="alert alert-warning">⚠️ Catégories dépassées : ${overCats}</div>`;
+                        }
+
+                        const recapDiv = document.getElementById('archive-recap');
+                        recapDiv.style.display = 'block';
+                        recapDiv.innerHTML = recapHtml;
+
+                        if(!confirm("Confirmez-vous la clôture et l'archivage de ce mois ? Cette action est irréversible.")) {
+                            setTimeout(() => recapDiv.style.display = 'none', 5000);
+                            return;
+                        }
+                        recapDiv.style.display = 'none';
+                    }
+
+                    // Marquer comme archivé
+                    if(currentData) {
+                        currentData.status = 'archive';
+                        // Snapshot des revenus/charges pour l'historique fidèle
+                        const settings = BudgetApp.getItem('bm_settings') || { revenus: [], charges: [] };
+                        currentData.snapshot_revenus = settings.revenus.reduce((a,b)=>a+parseFloat(b.montant||0),0);
+                        currentData.snapshot_charges = settings.charges.reduce((a,b)=>a+parseFloat(b.montant||0),0);
+                    }
+                    BudgetApp.setItem(currentKey, currentData);
+
+                    // Ajouter à la liste des archives
+                    let archives = BudgetApp.getItem('bm_archives') || [];
+                    if (!archives.includes(currentKey)) {
+                        archives.push(currentKey);
+                        archives.sort().reverse(); // Tri décroissant
+                        BudgetApp.setItem('bm_archives', archives);
+                    }
+
+                    // Créer le nouveau mois vide (le système le fera automatiquement au prochain load, mais on force le refresh)
+                    alert("Mois archivé avec succès ! Un nouveau mois a été initialisé.");
+                    location.reload(); 
+                },
+                renderArchives() {
+                    const archives = BudgetApp.getItem('bm_archives') || [];
+                    const container = document.getElementById('archives-list');
+                    container.innerHTML = '';
+
+                    if (archives.length === 0) {
+                        container.innerHTML = '<p style="text-align:center; color:var(--text-secondary); padding: 2rem;">Aucun mois archivé pour le moment.</p>';
+                        return;
+                    }
+
+                    archives.forEach(period => {
+                        const data = BudgetApp.getItem(period);
+                        if (!data) return;
+
+                        // Récupérer revenus/charges (snapshot ou actuels)
+                        const rev = data.snapshot_revenus !== undefined ? data.snapshot_revenus : (BudgetApp.getItem('bm_settings').revenus || []).reduce((a,b)=>a+parseFloat(b.montant||0),0);
+                        const chg = data.snapshot_charges !== undefined ? data.snapshot_charges : (BudgetApp.getItem('bm_settings').charges || []).reduce((a,b)=>a+parseFloat(b.montant||0),0);
+                        const exp = (data.expenses || []).reduce((a,b)=>a+parseFloat(b.amount||0),0);
+                        const solde = rev - chg - exp;
+
+                        const [year, month] = period.split('-');
+                        const monthNames = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin', 'Juil', 'Aoû', 'Sep', 'Oct', 'Nov', 'Déc'];
+                        const periodLabel = `${monthNames[parseInt(month)-1]} ${year}`;
+
+                        const card = document.createElement('div');
+                        card.className = 'archive-card';
+                        card.innerHTML = `
+                            <div class="archive-header">
+                                <span class="archive-period">${periodLabel}</span>
+                                <div>
+                                    <button class="btn btn-sm btn-outline" onclick="ArchiveModule.exportMonth('${period}')">📥 Export JSON</button>
+                                    <button class="btn btn-sm" onclick="ArchiveModule.showDetail('${period}')">👁️ Voir détail</button>
+                                </div>
+                            </div>
+                            <div class="archive-stats">
+                                <div class="archive-stat-item">
+                                    <div class="archive-stat-label">Revenus - Charges</div>
+                                    <div class="archive-stat-value">${BudgetApp.formatEuro(rev - chg)}</div>
+                                </div>
+                                <div class="archive-stat-item">
+                                    <div class="archive-stat-label">Dépenses</div>
+                                    <div class="archive-stat-value text-danger">${BudgetApp.formatEuro(exp)}</div>
+                                </div>
+                                <div class="archive-stat-item">
+                                    <div class="archive-stat-label">Solde Final</div>
+                                    <div class="archive-stat-value ${solde >= 0 ? 'text-success' : 'text-danger'}">${BudgetApp.formatEuro(solde)}</div>
+                                </div>
+                            </div>
+                        `;
+                        container.appendChild(card);
+                    });
+                },
+                showDetail(period) {
+                    const data = BudgetApp.getItem(period);
+                    if (!data) return;
+                    
+                    const detailView = document.getElementById('archive-detail-view');
+                    const detailTitle = document.getElementById('detail-month-title');
+                    const detailContent = document.getElementById('detail-content');
+                    
+                    const [year, month] = period.split('-');
+                    const monthNames = ['Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'];
+                    detailTitle.textContent = `Détail : ${monthNames[parseInt(month)-1]} ${year}`;
+                    
+                    let html = `<div class="summary-grid" style="margin-bottom:1.5rem;">`;
+                    const exp = (data.expenses || []).reduce((a,b)=>a+parseFloat(b.amount||0),0);
+                    html += `<div class="summary-card"><div class="summary-label">Total Dépenses</div><div class="summary-value text-danger">${BudgetApp.formatEuro(exp)}</div></div>`;
+                    html += `<div class="summary-card"><div class="summary-label">Nombre d'opérations</div><div class="summary-value">${data.expenses ? data.expenses.length : 0}</div></div>`;
+                    html += `</div>`;
+
+                    html += `<h3 style="margin-bottom:0.5rem;">Liste des dépenses</h3><table><thead><tr><th>Date</th><th>Libellé</th><th>Catégorie</th><th>Montant</th></tr></thead><tbody>`;
+                    
+                    if (data.expenses && data.expenses.length > 0) {
+                        data.expenses.sort((a,b) => new Date(b.date) - new Date(a.date)).forEach(e => {
+                            html += `<tr>
+                                <td>${BudgetApp.formatDate(e.date)}</td>
+                                <td>${e.label}</td>
+                                <td><span style="background:#e0e7ff; color:#4338ca; padding:2px 6px; border-radius:4px; font-size:0.8rem;">${e.category}</span></td>
+                                <td style="font-weight:bold; color:var(--danger-color);">-${BudgetApp.formatEuro(e.amount)}</td>
+                            </tr>`;
+                        });
+                    } else {
+                        html += `<tr><td colspan="4" style="text-align:center;">Aucune dépense.</td></tr>`;
+                    }
+                    html += `</tbody></table>`;
+
+                    detailContent.innerHTML = html;
+                    detailView.style.display = 'block';
+                    detailView.scrollIntoView({ behavior: 'smooth' });
+                },
+                exportMonth(period) {
+                    const data = BudgetApp.getItem(period);
+                    if (!data) return;
+                    
+                    const jsonStr = JSON.stringify(data, null, 2);
+                    const blob = new Blob([jsonStr], { type: 'application/json' });
+                    const url = URL.createObjectURL(blob);
+                    
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `archive_budget_${period}.json`;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                },
+                renderComparisonChart() {
+                    const archives = BudgetApp.getItem('bm_archives') || [];
+                    // Prendre les 6 derniers mois archivés + mois courant si pertinent, ici on se base sur archives
+                    const last6 = archives.slice(0, 6).reverse(); // Du plus ancien au plus récent des 6 derniers
+                    
+                    const container = document.getElementById('comparison-chart');
+                    if (last6.length === 0) {
+                        container.innerHTML = '<p style="color:var(--text-secondary); align-self:center;">Aucune donnée suffisante pour le graphique.</p>';
+                        return;
+                    }
+
+                    // Calculer max pour l'échelle
+                    let maxVal = 0;
+                    const barsData = last6.map(period => {
+                        const data = BudgetApp.getItem(period);
+                        const total = (data.expenses || []).reduce((a,b)=>a+parseFloat(b.amount||0),0);
+                        if (total > maxVal) maxVal = total;
+                        return { period, total };
+                    });
+
+                    if (maxVal === 0) maxVal = 1; // Eviter division par zero
+
+                    container.innerHTML = '';
+                    barsData.forEach(item => {
+                        const heightPercent = (item.total / maxVal) * 100;
+                        const [year, month] = item.period.split('-');
+                        const monthShort = ['J','F','M','A','M','J','J','A','S','O','N','D'][parseInt(month)-1];
+                        
+                        const wrapper = document.createElement('div');
+                        wrapper.className = 'chart-bar-wrapper';
+                        wrapper.innerHTML = `
+                            <div class="chart-value">${BudgetApp.formatEuro(item.total)}</div>
+                            <div class="chart-bar" style="height: ${heightPercent}%;"></div>
+                            <div class="chart-label">${monthShort} ${year.slice(-2)}</div>
+                        `;
+                        container.appendChild(wrapper);
+                    });
+                }
+            };
+
+            // 3. Hook sur la navigation
+            function handleRoute(viewId) {
+                if (viewId === 'expenses') {
+                    ExpensesModule.init();
+                    ExpensesModule.renderList();
+                    ExpensesModule.updateSummary();
+                } else if (viewId === 'settings') {
+                    SettingsModule.init();
+                    SettingsModule.renderSettings();
+                } else if (viewId === 'budget') {
+                    BudgetModule.init();
+                    BudgetModule.renderCategories();
+                } else if (viewId === 'dashboard') {
+                    DashboardModule.render();
+                } else if (viewId === 'archive') {
+                    ArchiveModule.init();
+                }
+            }
+
+            document.querySelectorAll('.nav-link, .mobile-nav-link').forEach(link => {
+                link.addEventListener('click', function() {
+                    const viewId = this.dataset.view;
+                    setTimeout(() => handleRoute(viewId), 50);
+                });
+            });
+
+            // Initialisation de la vue par défaut
+            handleRoute('dashboard');
+        });
+    </script>
+</body>
+</html>
