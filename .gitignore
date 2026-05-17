@@ -13,6 +13,7 @@
 .vscode/
 .idea/
 
+
 # Dependencies
 node_modules/
 venv/
@@ -68,4 +69,3 @@ htmlcov/
 *.tar.bz2
 *.tar.xz
 *.tar.zst
-```
