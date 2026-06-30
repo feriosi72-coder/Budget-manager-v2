@@ -1,4 +1,9 @@
-```gitignore
+--- .gitignore (原始)
+(index.html is a source file, and there are no build artifacts, dependencies, or temp files in the changes)
+
+(empty)
+
++++ .gitignore (修改后)
 # Logs and temp files
 *.log
 *.tmp
@@ -13,12 +18,11 @@
 .vscode/
 .idea/
 
-
 # Dependencies
 node_modules/
-venv/
-.venv/
 __pycache__/
+.venv/
+venv/
 .mypy_cache/
 .pytest_cache/
 dist/
@@ -26,7 +30,7 @@ build/
 target/
 .gradle/
 
-# OS
+# System files
 .DS_Store
 Thumbs.db
 
